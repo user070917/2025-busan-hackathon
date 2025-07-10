@@ -232,37 +232,58 @@ const ExerciseRecommendationsPage = ({ user, setCurrentPage }) => {
 
     const exerciseData = getExerciseRecommendations(user?.bmi);
 
-    // Gemini API 호출 함수 (실제 구현시 API 키 필요)
-    const callGeminiAPI = async (question) => {
-        // 실제 Gemini API 호출 코드
-        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer AIzaSyD60LRFloxSPQU5uwdE_Q1kyMPIGgXg7Wk`
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `사용자 BMI: ${user?.bmi}, 질문: ${question}. 운동 관련 조언을 해주세요.`
-                    }]
-                }]
-            })
-        });
+    // OpenAI GPT API 호출 함수
+    const callGPTAPI = async (question) => {
+        try {
+            // 실제 OpenAI API 호출 코드
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer REMOVED_API_KEY
+` // 실제 API 키로 교체하세요
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo', // 또는 'gpt-4'
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `당신은 전문적인 운동 트레이너입니다. 사용자의 BMI가 ${user?.bmi}이고, 운동에 관한 질문에 대해 안전하고 실용적인 조언을 제공해주세요. 답변은 한국어로 친근하고 이해하기 쉽게 작성해주세요.`
+                        },
+                        {
+                            role: 'user',
+                            content: question
+                        }
+                    ],
+                    max_tokens: 500,
+                    temperature: 0.7
+                })
+            });
 
-        // 데모용 응답 (실제로는 위의 API 호출을 사용)
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const responses = [
-                    `BMI ${user?.bmi}를 고려할 때, 이 운동이 적합합니다. 점진적으로 강도를 높여가세요.`,
-                    '운동 전 충분한 워밍업과 운동 후 스트레칭을 잊지 마세요.',
-                    '일주일에 3-4회 정도 꾸준히 하시는 것이 중요합니다.',
-                    '운동 중 무릎이나 허리에 통증이 있다면 즉시 중단하고 전문가와 상담하세요.',
-                    '개인의 체력 수준에 맞춰 운동 강도를 조절하시기 바랍니다.'
-                ];
-                resolve(responses[Math.floor(Math.random() * responses.length)]);
-            }, 1000);
-        });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+
+        } catch (error) {
+            console.error('GPT API 호출 중 오류:', error);
+
+            // 데모용 응답 (실제 API 호출이 실패했을 때)
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const responses = [
+                        `BMI ${user?.bmi}를 고려할 때, 이 운동이 적합합니다. 점진적으로 강도를 높여가세요.`,
+                        '운동 전 충분한 워밍업과 운동 후 스트레칭을 잊지 마세요.',
+                        '일주일에 3-4회 정도 꾸준히 하시는 것이 중요합니다.',
+                        '운동 중 무릎이나 허리에 통증이 있다면 즉시 중단하고 전문가와 상담하세요.',
+                        '개인의 체력 수준에 맞춰 운동 강도를 조절하시기 바랍니다.'
+                    ];
+                    resolve(responses[Math.floor(Math.random() * responses.length)]);
+                }, 1000);
+            });
+        }
     };
 
     const handleSendMessage = async () => {
@@ -274,7 +295,7 @@ const ExerciseRecommendationsPage = ({ user, setCurrentPage }) => {
         setIsLoading(true);
 
         try {
-            const response = await callGeminiAPI(userMessage);
+            const response = await callGPTAPI(userMessage);
             setChatMessages(prev => [...prev, { type: 'bot', content: response, timestamp: new Date() }]);
         } catch (error) {
             setChatMessages(prev => [...prev, {

@@ -1,7 +1,6 @@
-import { Activity, Calculator, Camera, Heart, LogOut, Menu, User, X } from 'lucide-react';
+import { Calculator, Camera, Heart, LogOut, Menu, User, X } from 'lucide-react';
 import { useState } from 'react';
 import BMICalculatorPage from './components/BMICalculatorPage';
-import ExerciseRecommendationsPage from './components/ExerciseRecommendationPage';
 import LoginPage from './components/login'; // 분리된 로그인 컴포넌트 임포트
 
 
@@ -147,8 +146,6 @@ const HealthManagementApp = () => {
     const sidebarItems = [
       { icon: Camera, label: '음식 인식', page: 'food-recognition' },
       { icon: Calculator, label: 'BMI 계산기', page: 'bmi-calculator' },
-      { icon: Activity, label: '운동 추천', page: 'exercise' },
-      { icon: Heart, label: '건강 상태', page: 'health-status' },
       { icon: User, label: '프로필', page: 'profile' }
     ];
 
@@ -201,9 +198,9 @@ const HealthManagementApp = () => {
                 >
                   <div className="flex items-center mb-4">
                     <Camera className="w-8 h-8 text-blue-500 mr-3" />
-                    <h3 className="text-lg font-semibold">음식 인식</h3>
+                    <h3 className="text-lg font-semibold">영양제 인식</h3>
                   </div>
-                  <p className="text-gray-600 mb-4">사진으로 음식을 인식하고 칼로리를 계산해보세요.</p>
+                  <p className="text-gray-600 mb-4">사진으로 영양제를 인식하고 성분을 계산해보세요.</p>
                   <button className="text-blue-500 hover:text-blue-700 font-medium">시작하기 →</button>
                 </div>
 
@@ -217,30 +214,6 @@ const HealthManagementApp = () => {
                   </div>
                   <p className="text-gray-600 mb-4">정확한 BMI를 계산하고 상태를 확인해보세요.</p>
                   <button className="text-purple-500 hover:text-purple-700 font-medium">시작하기 →</button>
-                </div>
-
-                <div
-                  className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setCurrentPage('exercise')}
-                >
-                  <div className="flex items-center mb-4">
-                    <Activity className="w-8 h-8 text-green-500 mr-3" />
-                    <h3 className="text-lg font-semibold">맞춤 운동</h3>
-                  </div>
-                  <p className="text-gray-600 mb-4">당신의 BMI에 맞는 운동을 추천해드립니다.</p>
-                  <button className="text-green-500 hover:text-green-700 font-medium">보기 →</button>
-                </div>
-
-                <div
-                  className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setCurrentPage('health-status')}
-                >
-                  <div className="flex items-center mb-4">
-                    <Heart className="w-8 h-8 text-red-500 mr-3" />
-                    <h3 className="text-lg font-semibold">건강 분석</h3>
-                  </div>
-                  <p className="text-gray-600 mb-4">대사증후군 위험도를 분석하고 관리하세요.</p>
-                  <button className="text-red-500 hover:text-red-700 font-medium">확인하기 →</button>
                 </div>
 
                 <div
@@ -261,10 +234,6 @@ const HealthManagementApp = () => {
           return <BMICalculatorPage user={user} setUser={setUser} setCurrentPage={setCurrentPage} />;
         case 'food-recognition':
           return <FoodRecognitionPage setCurrentPage={setCurrentPage} />;
-        case 'exercise':
-          return <ExerciseRecommendationsPage user={user} setCurrentPage={setCurrentPage} />;
-        case 'health-status':
-          return <HealthStatusPage setCurrentPage={setCurrentPage} />;
         case 'profile':
           return <ProfilePage user={user} setCurrentPage={setCurrentPage} />;
         default:
