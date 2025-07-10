@@ -2,9 +2,10 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
 } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Heart } from "lucide-react";
 import { useState } from "react";
-import { auth } from "../firebase";
+import { auth, db } from "./Firebase.jsx";
 
 const LoginPage = ({ onLogin }) => {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -20,6 +21,7 @@ const LoginPage = ({ onLogin }) => {
         activityLevel: "",
     });
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -44,8 +46,11 @@ const LoginPage = ({ onLogin }) => {
         return (weight / (heightInM * heightInM)).toFixed(1);
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e) => {
+        e.preventDefault();
         setError("");
+        setIsLoading(true);
+
         try {
             if (isRegistering) {
                 // 회원가입 처리
@@ -55,20 +60,36 @@ const LoginPage = ({ onLogin }) => {
                     formData.password
                 );
 
-                // 추가 정보 (예: Firestore에 저장 가능)
-                const newUser = {
+                // Firestore에 사용자 정보 저장
+                const userData = {
                     uid: userCredential.user.uid,
                     email: formData.email,
                     name: formData.name,
-                    bmi: calculateBMI(formData.weight, formData.height),
-                    weight: formData.weight,
-                    height: formData.height,
-                    age: formData.age,
+                    weight: parseFloat(formData.weight) || 0, // 숫자로 변환
+                    height: parseFloat(formData.height) || 0, // 숫자로 변환
+                    age: parseInt(formData.age) || 0, // 숫자로 변환
                     gender: formData.gender,
                     diseases: formData.diseases,
                     activityLevel: formData.activityLevel,
+                    bmi: calculateBMI(formData.weight, formData.height),
+                    createdAt: new Date().toISOString(),
                 };
-                onLogin(newUser);
+
+                console.log("저장할 사용자 데이터:", userData); // 디버깅용
+
+                // Firestore에 사용자 문서 생성
+                await setDoc(doc(db, "users", userCredential.user.uid), userData);
+
+                // 저장된 데이터 확인
+                const savedUserDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+                if (savedUserDoc.exists()) {
+                    console.log("저장된 데이터:", savedUserDoc.data()); // 디버깅용
+                    onLogin(savedUserDoc.data());
+                } else {
+                    console.error("사용자 데이터가 저장되지 않았습니다.");
+                    onLogin(userData);
+                }
+
                 alert("회원가입 성공!");
             } else {
                 // 로그인 처리
@@ -78,16 +99,57 @@ const LoginPage = ({ onLogin }) => {
                     formData.password
                 );
 
-                const loginUser = {
-                    uid: userCredential.user.uid,
-                    email: userCredential.user.email,
-                    name: formData.email.split("@")[0],
-                };
-                onLogin(loginUser);
+                // Firestore에서 사용자 정보 가져오기
+                const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    console.log("로그인한 사용자 데이터:", userData); // 디버깅용
+                    onLogin(userData);
+                } else {
+                    // 기존 사용자인데 Firestore에 데이터가 없는 경우
+                    const basicUserData = {
+                        uid: userCredential.user.uid,
+                        email: userCredential.user.email,
+                        name: userCredential.user.email.split("@")[0],
+                        bmi: "알수 없음",
+                        weight: 0,
+                        height: 0,
+                        age: 0,
+                        gender: "",
+                        diseases: [],
+                        activityLevel: "",
+                        createdAt: new Date().toISOString(),
+                    };
+
+                    // 기본 데이터를 Firestore에 저장
+                    await setDoc(doc(db, "users", userCredential.user.uid), basicUserData);
+                    onLogin(basicUserData);
+                }
+
                 alert("로그인 성공!");
             }
         } catch (e) {
-            setError(e.message);
+            console.error("Authentication error:", e);
+            let errorMessage = "오류가 발생했습니다.";
+
+            if (e.code === "auth/email-already-in-use") {
+                errorMessage = "이미 사용 중인 이메일입니다.";
+            } else if (e.code === "auth/weak-password") {
+                errorMessage = "비밀번호는 6자리 이상이어야 합니다.";
+            } else if (e.code === "auth/user-not-found") {
+                errorMessage = "존재하지 않는 계정입니다.";
+            } else if (e.code === "auth/wrong-password") {
+                errorMessage = "비밀번호가 틀렸습니다.";
+            } else if (e.code === "auth/invalid-email") {
+                errorMessage = "유효하지 않은 이메일 형식입니다.";
+            } else if (e.code === "permission-denied") {
+                errorMessage = "데이터베이스 접근 권한이 없습니다.";
+            }
+
+            setError(errorMessage);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -104,7 +166,7 @@ const LoginPage = ({ onLogin }) => {
                     </p>
                 </div>
 
-                <div className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <input
                             type="email"
@@ -152,6 +214,9 @@ const LoginPage = ({ onLogin }) => {
                                     onChange={handleInputChange}
                                     className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
+                                    min="1"
+                                    max="500"
+                                    step="0.1"
                                 />
                                 <input
                                     type="number"
@@ -161,6 +226,9 @@ const LoginPage = ({ onLogin }) => {
                                     onChange={handleInputChange}
                                     className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
+                                    min="100"
+                                    max="250"
+                                    step="1"
                                 />
                             </div>
 
@@ -173,6 +241,9 @@ const LoginPage = ({ onLogin }) => {
                                     onChange={handleInputChange}
                                     className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
+                                    min="1"
+                                    max="120"
+                                    step="1"
                                 />
                                 <select
                                     name="gender"
@@ -224,15 +295,15 @@ const LoginPage = ({ onLogin }) => {
                     )}
 
                     <button
-                        type="button"
-                        onClick={handleSubmit}
-                        className="w-full bg-gradient-to-r from-blue-500 to-green-500 text-white py-3 rounded-lg hover:from-blue-600 hover:to-green-600 transition-all duration-200 font-semibold"
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-blue-500 to-green-500 text-white py-3 rounded-lg hover:from-blue-600 hover:to-green-600 transition-all duration-200 font-semibold disabled:opacity-50"
                     >
-                        {isRegistering ? "회원가입" : "로그인"}
+                        {isLoading ? "처리 중..." : isRegistering ? "회원가입" : "로그인"}
                     </button>
 
-                    {error && <p className="text-red-500 mt-2 text-center">{error}</p>}
-                </div>
+                    {error && <p className="text-red-500 mt-2 text-center text-sm">{error}</p>}
+                </form>
 
                 <div className="text-center mt-6">
                     <button

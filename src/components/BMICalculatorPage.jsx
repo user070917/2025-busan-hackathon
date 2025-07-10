@@ -1,12 +1,15 @@
 // components/BMICalculatorPage.jsx
+import { doc, updateDoc } from 'firebase/firestore';
 import { Calculator } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { db } from './Firebase.jsx'; // Firebase 설정 파일 경로에 맞게 수정
 
 const BMICalculatorPage = ({ user, setUser }) => {
     const [weight, setWeight] = useState(user?.weight || '');
     const [height, setHeight] = useState(user?.height || '');
     const [bmiResult, setBmiResult] = useState(user?.bmi || null);
     const [bmiCategory, setBmiCategory] = useState(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     // user prop이 변경될 때마다 체중, 신장, BMI를 업데이트합니다.
     useEffect(() => {
@@ -20,22 +23,48 @@ const BMICalculatorPage = ({ user, setUser }) => {
         }
     }, [user]);
 
-    const calculateBMI = () => {
-        if (weight && height) {
+    const calculateBMI = async () => {
+        if (!weight || !height) {
+            setBmiResult(null);
+            setBmiCategory(null);
+            return;
+        }
+
+        setIsUpdating(true);
+
+        try {
             const heightInM = parseFloat(height) / 100;
             const bmi = (parseFloat(weight) / (heightInM * heightInM)).toFixed(1);
+
             setBmiResult(bmi);
             updateBMICategory(bmi);
-            // BMI 계산 후 사용자 데이터 업데이트
-            setUser(prevUser => ({
-                ...prevUser,
+
+            const updatedData = {
                 weight: parseFloat(weight),
                 height: parseFloat(height),
                 bmi: bmi
+            };
+
+            // 로컬 상태 업데이트
+            setUser(prevUser => ({
+                ...prevUser,
+                ...updatedData
             }));
-        } else {
-            setBmiResult(null);
-            setBmiCategory(null);
+
+            // Firebase에 업데이트
+            if (user?.uid) {
+                const userRef = doc(db, 'users', user.uid);
+                await updateDoc(userRef, updatedData);
+                console.log('Firebase 업데이트 성공:', updatedData);
+            } else {
+                console.error('사용자 UID가 없습니다.');
+            }
+
+        } catch (error) {
+            console.error('BMI 계산 및 Firebase 업데이트 실패:', error);
+            alert('데이터 저장 중 오류가 발생했습니다.');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -66,6 +95,9 @@ const BMICalculatorPage = ({ user, setUser }) => {
                         onChange={(e) => setWeight(e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="예: 70"
+                        min="1"
+                        max="500"
+                        step="0.1"
                     />
                 </div>
                 <div>
@@ -79,16 +111,18 @@ const BMICalculatorPage = ({ user, setUser }) => {
                         onChange={(e) => setHeight(e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="예: 175"
+                        min="100"
+                        max="250"
+                        step="1"
                     />
                 </div>
                 <button
                     onClick={calculateBMI}
-                    className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+                    disabled={isUpdating || !weight || !height}
+                    className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    BMI 계산
-
+                    {isUpdating ? '저장 중...' : 'BMI 계산'}
                 </button>
-
             </div>
 
             {bmiResult && bmiCategory && (
@@ -101,6 +135,9 @@ const BMICalculatorPage = ({ user, setUser }) => {
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
                         BMI는 신체 질량을 나타내는 지표로, 건강 상태를 파악하는 데 도움이 됩니다.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        데이터가 자동으로 저장되었습니다.
                     </p>
                 </div>
             )}
