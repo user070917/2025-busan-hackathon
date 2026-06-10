@@ -1,79 +1,21 @@
-import { Calculator, Camera, Heart, LogOut, Menu, User, X } from 'lucide-react';
+import { Camera, Clock, Heart, LogOut, Menu, User, X } from 'lucide-react';
 import { useState } from 'react';
-import BMICalculatorPage from './components/BMICalculatorPage';
-import LoginPage from './components/login'; // 분리된 로그인 컴포넌트 임포트
-
-
-const FoodRecognitionPage = ({ setCurrentPage }) => (
-  <div className="p-6 bg-white rounded-xl shadow-md">
-    <div className="flex items-center mb-6">
-      <Camera className="w-8 h-8 text-blue-500 mr-3" />
-      <h2 className="text-2xl font-bold text-gray-800">음식 인식</h2>
-    </div>
-    <p className="text-gray-600">이곳은 음식 인식 페이지입니다. 음식 사진을 업로드하고 칼로리를 분석할 수 있습니다.</p>
-    <div className="mt-4">
-      <button
-        onClick={() => setCurrentPage('main')}
-        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
-      >
-        대시보드로 돌아가기
-      </button>
-    </div>
-  </div>
-);
-
-const HealthStatusPage = ({ setCurrentPage }) => (
-  <div className="p-6 bg-white rounded-xl shadow-md">
-    <div className="flex items-center mb-6">
-      <Heart className="w-8 h-8 text-red-500 mr-3" />
-      <h2 className="text-2xl font-bold text-gray-800">건강 상태 분석</h2>
-    </div>
-    <p className="text-gray-600">이곳은 건강 상태를 분석하고 관리하는 페이지입니다. 질환 위험도 등을 확인할 수 있습니다.</p>
-    <div className="mt-4">
-      <button
-        onClick={() => setCurrentPage('main')}
-        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
-      >
-        대시보드로 돌아가기
-      </button>
-    </div>
-  </div>
-);
-
-const ProfilePage = ({ user, setCurrentPage }) => (
-  <div className="p-6 bg-white rounded-xl shadow-md">
-    <div className="flex items-center mb-6">
-      <User className="w-8 h-8 text-orange-500 mr-3" />
-      <h2 className="text-2xl font-bold text-gray-800">프로필</h2>
-    </div>
-    <p className="text-gray-600 mb-4">내 정보를 확인하고 관리합니다.</p>
-    <div className="space-y-2 text-gray-700">
-      <p><strong>이름:</strong> {user?.name}</p>
-      <p><strong>이메일:</strong> {user?.email}</p>
-      <p><strong>나이:</strong> {user?.age} 세</p>
-      <p><strong>성별:</strong> {user?.gender === 'male' ? '남성' : user?.gender === 'female' ? '여성' : ''}</p>
-      <p><strong>체중:</strong> {user?.weight} kg</p>
-      <p><strong>신장:</strong> {user?.height} cm</p>
-      <p><strong>BMI:</strong> {user?.bmi}</p>
-      <p><strong>기존 질환:</strong> {user?.diseases?.length > 0 ? user.diseases.join(', ') : '없음'}</p>
-      <p><strong>활동 수준:</strong> {user?.activityLevel}</p>
-    </div>
-    <div className="mt-6">
-      <button
-        onClick={() => setCurrentPage('main')}
-        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
-      >
-        대시보드로 돌아가기
-      </button>
-    </div>
-  </div>
-);
+import FoodRecognitionPage from './components/FoodRecognitionPage';
+import ProfilePage from './components/ProfilePage';
+import HistoryPage from './components/history';
+import LoginPage from './components/login';
 
 const HealthManagementApp = () => {
   const [currentPage, setCurrentPage] = useState('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [history, setHistory] = useState([]);
+
+  // 히스토리에 항목 추가
+  const addToHistory = (item) => {
+    setHistory(prev => [item, ...prev]);
+  };
 
   // 로그인 핸들러
   const handleLogin = (userData) => {
@@ -87,6 +29,7 @@ const HealthManagementApp = () => {
     setIsLoggedIn(false);
     setCurrentPage('login');
     setUser(null);
+    setHistory([]);
   };
 
   // 메인 페이지
@@ -95,9 +38,9 @@ const HealthManagementApp = () => {
       if (bmi === '알수 없음' || isNaN(bmi)) return { category: '정보 없음', color: 'text-gray-600', bg: 'bg-gray-50' };
       if (bmi < 18.5) return { category: '저체중', color: 'text-blue-600', bg: 'bg-blue-50' };
       if (bmi < 23) return { category: '정상', color: 'text-green-600', bg: 'bg-green-50' };
-      if (bmi < 25) return { category: '과체중 전단계', color: 'text-yellow-600', bg: 'bg-yellow-50' };
-      if (bmi < 30) return { category: '비만 1단계', color: 'text-orange-600', bg: 'bg-orange-50' };
-      return { category: '비만 2단계', color: 'text-red-600', bg: 'bg-red-50' };
+      if (bmi < 25) return { category: '주의 단계', color: 'text-yellow-600', bg: 'bg-yellow-50' };
+      if (bmi < 30) return { category: '위험 단계', color: 'text-orange-600', bg: 'bg-orange-50' };
+      return { category: '대사증후군 고위험군', color: 'text-red-600', bg: 'bg-red-50' };
     };
 
     const getRecommendation = (bmi) => {
@@ -105,47 +48,47 @@ const HealthManagementApp = () => {
         return {
           exercise: '신장과 체중을 입력하여 BMI를 계산해주세요.',
           diet: '신장과 체중을 입력하여 BMI를 계산해주세요.',
-          warning: 'BMI 정보가 없어 정확한 추천을 드릴 수 없습니다. 프로필에서 정보를 입력해주세요.'
+          warning: 'BMI 정보가 없어 대사증후군 위험도를 판단할 수 없습니다.'
         };
       }
       if (bmi < 18.5) {
         return {
-          exercise: '근력 운동 위주 (웨이트 트레이닝, 스쿼트, 푸시업)',
-          diet: '고단백 식단, 탄수화물 충분히 섭취',
-          warning: '영양 부족 및 근육량 부족 위험'
+          exercise: '기초체력 향상을 위한 가벼운 근력 운동 (밴드 운동, 걷기)',
+          diet: '영양 결핍 방지를 위한 균형 잡힌 식사 필요',
+          warning: '체중 증가와 함께 건강한 근육량 확보 필요'
         };
       }
       if (bmi < 23) {
         return {
-          exercise: '유산소 및 근력 운동 (조깅, 플랭크, 요가)',
-          diet: '균형 잡힌 식단 (탄:단:지 = 5:3:2)',
-          warning: '건강한 상태 유지'
+          exercise: '유산소 운동과 스트레칭 병행 (조깅, 자전거, 요가)',
+          diet: '염분과 당분 섭취 줄이기, 채소 섭취 늘리기',
+          warning: '현재 건강 상태 유지가 중요합니다'
         };
       }
       if (bmi < 25) {
         return {
-          exercise: '유산소 위주 + 체중 감량용 근력 운동',
-          diet: '저당&저지방, 야식 줄이기, 충분한 물 섭취',
-          warning: '체지방 증가 가능성 존재'
+          exercise: '매일 30분 이상 유산소 운동, 간헐적 근력 운동',
+          diet: '혈당 관리 식단 (복합탄수화물 위주), 트랜스지방 줄이기',
+          warning: '고혈압 및 고혈당 위험 가능성 있음'
         };
       }
       if (bmi < 30) {
         return {
-          exercise: '고강도 운동 & 전신 근력운동',
-          diet: '저탄수화물 & 고단백 위주, 가공식품 줄이기',
-          warning: '생활습관병 (당뇨, 고혈압) 위험 증가'
+          exercise: '고강도 유산소 + 체중 감소용 근력 운동 (인터벌 트레이닝)',
+          diet: '지중해식 식단 추천, 당·지방 섭취 제한',
+          warning: '대사증후군 진입 가능성 높음, 지속적 관리 필요'
         };
       }
       return {
-        exercise: '전문가 상담 후 운동 시작, 걷기부터 점진적 증가',
-        diet: '전문 영양 상담 권장, 철저한 관리 필요',
-        warning: '만성질환 확률 증가, 의학적 관리 필요'
+        exercise: '의학적 지도 아래 맞춤 운동 필요 (걷기부터 시작)',
+        diet: '영양사 상담 통한 체계적인 식단 계획',
+        warning: '대사증후군 고위험군, 합병증 예방을 위한 전문 관리 필수'
       };
     };
 
     const sidebarItems = [
-      { icon: Camera, label: '음식 인식', page: 'food-recognition' },
-      { icon: Calculator, label: 'BMI 계산기', page: 'bmi-calculator' },
+      { icon: Camera, label: '영양제 인식', page: 'food-recognition' },
+      { icon: Clock, label: '히스토리 검색', page: 'history' },
       { icon: User, label: '프로필', page: 'profile' }
     ];
 
@@ -190,6 +133,25 @@ const HealthManagementApp = () => {
                 </div>
               )}
 
+              {/* 최근 히스토리 요약 */}
+              {history.length > 0 && (
+                <div className="bg-purple-50 rounded-xl p-6 mb-6 border-l-4 border-purple-500">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">최근 영양제 인식</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">총 인식 횟수</p>
+                      <p className="text-2xl font-bold text-purple-600">{history.length}회</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">최근 인식 영양제</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {history[0]?.supplements.map(s => s.name).join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* 기능 카드들 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div
@@ -206,14 +168,17 @@ const HealthManagementApp = () => {
 
                 <div
                   className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setCurrentPage('bmi-calculator')}
+                  onClick={() => setCurrentPage('history')}
                 >
                   <div className="flex items-center mb-4">
-                    <Calculator className="w-8 h-8 text-purple-500 mr-3" />
-                    <h3 className="text-lg font-semibold">BMI 계산기</h3>
+                    <Clock className="w-8 h-8 text-purple-500 mr-3" />
+                    <h3 className="text-lg font-semibold">히스토리</h3>
                   </div>
-                  <p className="text-gray-600 mb-4">정확한 BMI를 계산하고 상태를 확인해보세요.</p>
-                  <button className="text-purple-500 hover:text-purple-700 font-medium">시작하기 →</button>
+                  <p className="text-gray-600 mb-4">과거 인식한 영양제 기록을 확인해보세요.</p>
+                  <div className="flex items-center justify-between">
+                    <button className="text-purple-500 hover:text-purple-700 font-medium">보기 →</button>
+                    <span className="text-sm text-gray-500">{history.length}건</span>
+                  </div>
                 </div>
 
                 <div
@@ -230,12 +195,13 @@ const HealthManagementApp = () => {
               </div>
             </>
           );
-        case 'bmi-calculator':
-          return <BMICalculatorPage user={user} setUser={setUser} setCurrentPage={setCurrentPage} />;
+
         case 'food-recognition':
-          return <FoodRecognitionPage setCurrentPage={setCurrentPage} />;
+          return <FoodRecognitionPage user={user} setUser={setUser} setCurrentPage={setCurrentPage} addToHistory={addToHistory} />;
+        case 'history':
+          return <HistoryPage setCurrentPage={setCurrentPage} history={history} />;
         case 'profile':
-          return <ProfilePage user={user} setCurrentPage={setCurrentPage} />;
+          return <ProfilePage user={user} setUser={setUser} setCurrentPage={setCurrentPage} />;
         default:
           return null;
       }
@@ -301,7 +267,8 @@ const HealthManagementApp = () => {
                         setCurrentPage(item.page);
                         setSidebarOpen(false);
                       }}
-                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors ${currentPage === item.page ? 'bg-blue-50 text-blue-600' : ''
+                        }`}
                     >
                       <item.icon className="w-5 h-5" />
                       <span>{item.label}</span>

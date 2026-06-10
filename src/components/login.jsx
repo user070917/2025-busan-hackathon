@@ -32,12 +32,22 @@ const LoginPage = ({ onLogin }) => {
     };
 
     const handleDiseaseChange = (disease) => {
-        setFormData((prev) => ({
-            ...prev,
-            diseases: prev.diseases.includes(disease)
-                ? prev.diseases.filter((d) => d !== disease)
-                : [...prev.diseases, disease],
-        }));
+        setFormData((prev) => {
+            let updatedDiseases = [...prev.diseases];
+
+            if (disease === "없음") {
+                updatedDiseases = updatedDiseases.includes("없음") ? [] : ["없음"];
+            } else {
+                updatedDiseases = updatedDiseases.includes(disease)
+                    ? updatedDiseases.filter((d) => d !== disease)
+                    : [...updatedDiseases.filter((d) => d !== "없음"), disease];
+            }
+
+            return {
+                ...prev,
+                diseases: updatedDiseases,
+            };
+        });
     };
 
     const calculateBMI = (weight, height) => {
@@ -53,21 +63,19 @@ const LoginPage = ({ onLogin }) => {
 
         try {
             if (isRegistering) {
-                // 회원가입 처리
                 const userCredential = await createUserWithEmailAndPassword(
                     auth,
                     formData.email,
                     formData.password
                 );
 
-                // Firestore에 사용자 정보 저장
                 const userData = {
                     uid: userCredential.user.uid,
                     email: formData.email,
                     name: formData.name,
-                    weight: parseFloat(formData.weight) || 0, // 숫자로 변환
-                    height: parseFloat(formData.height) || 0, // 숫자로 변환
-                    age: parseInt(formData.age) || 0, // 숫자로 변환
+                    weight: parseFloat(formData.weight) || 0,
+                    height: parseFloat(formData.height) || 0,
+                    age: parseInt(formData.age) || 0,
                     gender: formData.gender,
                     diseases: formData.diseases,
                     activityLevel: formData.activityLevel,
@@ -75,39 +83,29 @@ const LoginPage = ({ onLogin }) => {
                     createdAt: new Date().toISOString(),
                 };
 
-                console.log("저장할 사용자 데이터:", userData); // 디버깅용
-
-                // Firestore에 사용자 문서 생성
                 await setDoc(doc(db, "users", userCredential.user.uid), userData);
 
-                // 저장된 데이터 확인
                 const savedUserDoc = await getDoc(doc(db, "users", userCredential.user.uid));
                 if (savedUserDoc.exists()) {
-                    console.log("저장된 데이터:", savedUserDoc.data()); // 디버깅용
                     onLogin(savedUserDoc.data());
                 } else {
-                    console.error("사용자 데이터가 저장되지 않았습니다.");
                     onLogin(userData);
                 }
 
                 alert("회원가입 성공!");
             } else {
-                // 로그인 처리
                 const userCredential = await signInWithEmailAndPassword(
                     auth,
                     formData.email,
                     formData.password
                 );
 
-                // Firestore에서 사용자 정보 가져오기
                 const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    console.log("로그인한 사용자 데이터:", userData); // 디버깅용
                     onLogin(userData);
                 } else {
-                    // 기존 사용자인데 Firestore에 데이터가 없는 경우
                     const basicUserData = {
                         uid: userCredential.user.uid,
                         email: userCredential.user.email,
@@ -122,7 +120,6 @@ const LoginPage = ({ onLogin }) => {
                         createdAt: new Date().toISOString(),
                     };
 
-                    // 기본 데이터를 Firestore에 저장
                     await setDoc(doc(db, "users", userCredential.user.uid), basicUserData);
                     onLogin(basicUserData);
                 }
@@ -263,7 +260,17 @@ const LoginPage = ({ onLogin }) => {
                                     기존 질환 (해당사항 선택)
                                 </p>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {["당뇨병", "고혈압", "심장병", "관절염", "기타"].map((disease) => (
+                                    {[
+                                        "당뇨병",
+                                        "고혈압",
+                                        "심장병",
+                                        "관절염",
+                                        "신장질환",
+                                        "통풍",
+                                        "골다골증",
+                                        "기타",
+                                        "없음",
+                                    ].map((disease) => (
                                         <label key={disease} className="flex items-center space-x-2">
                                             <input
                                                 type="checkbox"
