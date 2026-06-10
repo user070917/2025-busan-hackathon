@@ -235,13 +235,13 @@ const ExerciseRecommendationsPage = ({ user, setCurrentPage }) => {
     // OpenAI GPT API 호출 함수
     const callGPTAPI = async (question) => {
         try {
+            const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
             // 실제 OpenAI API 호출 코드
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer REMOVED_API_KEY
-` // 실제 API 키로 교체하세요
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
                 },
                 body: JSON.stringify({
                     model: 'gpt-3.5-turbo', // 또는 'gpt-4'
